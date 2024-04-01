@@ -48,6 +48,7 @@ from typing import (Any, Union, Tuple, Generator, Optional, Sequence, Callable,
 from numpy.typing import ArrayLike, NDArray
 
 from .core import update_metadata
+from .core import isTriangle, tri
 
 # types
 Array = NDArray
@@ -62,10 +63,9 @@ def number_from_cls(cls: Cls) -> int:
     """Return the number of fields from a list *cls*."""
 
     k = len(cls)
-    n = int((2*k)**0.5)
-    if n * (n + 1) // 2 != k:
+    if isTriangle(k) is False:
         raise ValueError("length of cls is not a triangle number")
-    return n
+    return int((2*k)**0.5)
 
 
 def cls_indices(n: int) -> Generator[Tuple[int, int], None, None]:
@@ -175,7 +175,7 @@ def multalm(alm: Alm, bl: Array, inplace: bool = False) -> Alm:
     else:
         out = np.copy(alm)
     for m in range(n):
-        out[m*n-m*(m-1)//2:(m+1)*n-m*(m+1)//2] *= bl[m:]
+        out[m*n-tri(m):(m+1)*n-tri(m)] *= bl[m:]
     return out
 
 
@@ -239,10 +239,8 @@ def discretized_cls(
     """
 
     if ncorr is not None:
-        n = int((2*len(cls))**0.5)
-        if n*(n+1)//2 != len(cls):
-            raise ValueError("length of cls array is not a triangle number")
-        cls = [cls[i*(i+1)//2+j] if j <= ncorr else [] for i in range(n) for j in range(i+1)]
+        n = number_from_cls(cls)
+        cls = [cls[tri(i)+j] if j <= ncorr else [] for i in range(n) for j in range(i+1)]
 
     if nside is not None:
         pw = hp.pixwin(nside, lmax=lmax)
@@ -331,8 +329,8 @@ def generate_alms(
     cov = cls2cov(gls, n, ngrf, ncorr)
 
     # working arrays for the iterative sampling
-    z = np.zeros(n*(n+1)//2, dtype=np.complex128)
-    y = np.zeros((n*(n+1)//2, ncorr), dtype=np.complex128)
+    z = np.zeros(tri(n), dtype=np.complex128)
+    y = np.zeros((tri(n), ncorr), dtype=np.complex128)
 
     # generate the conditional normal distribution for iterative sampling
     conditional_dist = iternorm(ncorr, cov, size=n)
@@ -492,7 +490,7 @@ def getcl(cls, i, j=None, lmax=None):
         j = i
     elif j > i:
         i, j = j, i
-    cl = cls[i*(i+1)//2+i-j]
+    cl = cls[tri(i)+i-j]
     if lmax is not None:
         cl = cl[:lmax+1]
     return cl
