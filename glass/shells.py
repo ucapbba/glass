@@ -459,7 +459,9 @@ def partition_restrict(
     return part
 
 
-def redshift_grid(zmin, zmax, *, dz=None, num=None):
+def redshift_grid(zmin: int, 
+                  zmax: int, *, 
+                  dz=None, num=None) -> ArrayLike:
     '''Redshift grid with uniform spacing in redshift.'''
     if dz is not None and num is None:
         z = np.arange(zmin, np.nextafter(zmax+dz, zmax), dz)
@@ -470,7 +472,10 @@ def redshift_grid(zmin, zmax, *, dz=None, num=None):
     return z
 
 
-def distance_grid(cosmo, zmin, zmax, *, dx=None, num=None):
+from cosmology.camb import CambCosmology
+def distance_grid(cosmo: CambCosmology, 
+                  zmin: int, zmax: int
+                  , *, dx=None, num=None) -> ArrayLike:
     '''Redshift grid with uniform spacing in comoving distance.'''
     xmin, xmax = cosmo.dc(zmin), cosmo.dc(zmax)
     if dx is not None and num is None:

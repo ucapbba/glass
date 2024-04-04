@@ -48,7 +48,7 @@ from typing import (Any, Union, Tuple, Generator, Optional, Sequence, Callable,
 from numpy.typing import ArrayLike, NDArray
 
 from .core import update_metadata
-from .core import isTriangle, tri
+from .core.misc import isTriangle, tri
 
 # types
 Array = NDArray
@@ -175,7 +175,7 @@ def multalm(alm: Alm, bl: Array, inplace: bool = False) -> Alm:
     else:
         out = np.copy(alm)
     for m in range(n):
-        out[m*n-tri(m):(m+1)*n-tri(m)] *= bl[m:]
+        out[m*n-m*(m-1)//2:(m+1)*n-tri(m)] *= bl[m:]
     return out
 
 

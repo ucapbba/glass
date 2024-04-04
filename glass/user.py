@@ -21,7 +21,7 @@ Input and output
 import numpy as np
 
 
-def save_cls(filename, cls):
+def save_cls(filename, cls) -> np.void:
     '''Save a list of Cls to file.
 
     Uses :func:`numpy.savez` internally. The filename should therefore have a
@@ -34,7 +34,7 @@ def save_cls(filename, cls):
     np.savez(filename, values=values, split=split)
 
 
-def load_cls(filename):
+def load_cls(filename) -> list:
     '''Load a list of Cls from file.
 
     Uses :func:`numpy.load` internally.
