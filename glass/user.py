@@ -10,20 +10,17 @@ The :mod:`glass.user` module contains convenience functions for users of the
 library.
 
 
-Basic IO
+Input and Output
 ----------------
 
 .. autofunction:: save_cls
 .. autofunction:: load_cls
-
-FITS creation
-----------------
-.. autofunction:: awrite
-.. autoclass:: AsyncHduWriter
+.. autofunction:: write_context
 
 '''
 
 import numpy as np
+from contextlib import contextmanager
 
 
 def save_cls(filename, cls):
@@ -52,22 +49,16 @@ def load_cls(filename):
     return np.split(values, split)
 
 
-"""Module for writing catalogue output."""
-
-from contextlib import contextmanager
-from threading import Thread
-
-class AsyncHduWriter:
-    """Writer that asynchronously appends rows to a HDU."""
+class _FitsWriter:
+    '''Writer that creates a FITS file.  Initialised with the fits object and extention name.'''
 
     def __init__(self, fits, ext=None):
-        """Create a new, uninitialised writer."""
+        '''Create a new, uninitialised writer.'''
         self.fits = fits
         self.ext = ext
-        self.thread = None
 
     def _append(self, data, names=None):
-        """Write routine for FITS data."""
+        '''Internal method where the FITS writing is done'''
 
         if self.ext is None or self.ext not in self.fits:
             self.fits.write_table(data, names=names, extname=self.ext)
@@ -79,35 +70,29 @@ class AsyncHduWriter:
             hdu.write(data, names=names, firstrow=hdu.get_nrows())
 
     def write(self, data=None, /, **columns):
-        """Asynchronously append to FITS."""
+        '''Writes to FITS by calling the internal _append method.
+        Pass either a positional variable (data)
+        or multiple named arguments (**columns)'''
 
         # if data is given, write it as it is
         if data is not None:
-            if self.thread:
-                self.thread.join()
-            self.thread = Thread(target=self._append, args=(data,))
-            self.thread.start()
+            self._append(data)
 
         # if keyword arguments are given, treat them as names and columns
         if columns:
             names, values = list(columns.keys()), list(columns.values())
-            if self.thread:
-                self.thread.join()
-            self.thread = Thread(target=self._append, args=(values, names))
-            self.thread.start()
+            self._append(values, names)
 
 
 @contextmanager
-def awrite(filename, *, ext=None):
-    """Context manager for an asynchronous FITS catalogue writer."""
+def write_catalog(filename, *, ext=None):
+    '''Context manager for a FITS catalogue writer.  Calls class FitsWriter.
 
+    ext is the name of the HDU extension
+
+    '''
     import fitsio
-
     with fitsio.FITS(filename, "rw", clobber=True) as fits:
         fits.write(None)
-        writer = AsyncHduWriter(fits, ext)
-        try:
-            yield writer
-        finally:
-            if writer.thread:
-                writer.thread.join()
+        writer = _FitsWriter(fits, ext)
+        yield writer
